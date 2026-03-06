@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Haiku for Humans — community haiku, three lines at a time</title>
+  <meta name="description" content="A community haiku website. Submit your 5-7-5 haiku via Telegram and share it with the world.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Decorative grain overlay -->
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-mark" aria-hidden="true">
+        <svg viewBox="0 0 60 60" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <circle cx="30" cy="30" r="24" opacity="0.8" />
+          <path d="M20 38 C22 20, 38 18, 40 36" opacity="0.5" />
+        </svg>
+      </div>
+      <h1 class="site-title">Haiku for Humans</h1>
+      <p class="site-tagline">community haiku, three lines at a time</p>
+    </div>
+  </header>
+
+  <main class="two-col">
+    <!-- Left column: Top voted -->
+    <section class="col col-top" aria-label="Top haikus">
+      <h2 class="col-heading">Top Voted</h2>
+      <div id="top-feed" class="haiku-feed">
+        <!-- Top haikus inserted here -->
+      </div>
+      <p id="top-empty" class="col-empty" hidden>No votes yet. Be the first!</p>
+    </section>
+
+    <!-- Right column: New / discovery -->
+    <section class="col col-new" aria-label="New haikus">
+      <h2 class="col-heading">New</h2>
+      <div id="new-feed" class="haiku-feed">
+        <!-- New haikus inserted here -->
+      </div>
+      <div id="loader" class="loader" aria-hidden="true">
+        <span class="loader-dot"></span>
+        <span class="loader-dot"></span>
+        <span class="loader-dot"></span>
+      </div>
+      <div id="empty-state" class="empty-state" hidden>
+        <div class="empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 80 80" width="64" height="64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="40" cy="40" r="32" opacity="0.3" />
+            <path d="M28 50 C32 28, 48 26, 52 48" opacity="0.4" />
+          </svg>
+        </div>
+        <p class="empty-text">No haikus yet.</p>
+        <p class="empty-sub">Be the first to share one.</p>
+      </div>
+    </section>
+  </main>
+
+  <a href="https://t.me/haikuforhumans_bot" target="_blank" rel="noopener" class="telegram-cta" aria-label="Submit your haiku via Telegram">
+    <svg class="telegram-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+      <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+    </svg>
+    <span>Submit a haiku</span>
+  </a>
+
+  <footer class="site-footer">
+    <p>Send a 5-7-5 haiku to <a href="https://t.me/haikuforhumans_bot" target="_blank" rel="noopener">@haikuforhumans_bot</a> on Telegram</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
