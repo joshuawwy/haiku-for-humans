@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS haikus (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     text TEXT NOT NULL,
     author TEXT NOT NULL,
+    show_author INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -20,27 +21,78 @@ CREATE TABLE IF NOT EXISTS votes (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(haiku_id, ip_hash)
 );
+
+CREATE TABLE IF NOT EXISTS user_prefs (
+    telegram_id INTEGER PRIMARY KEY,
+    show_name INTEGER NOT NULL DEFAULT 0
+);
 """
 
 PAGE_SIZE = 20
 
 
 async def init_db():
-    """Create tables if they don't exist."""
+    """Create tables if they don't exist, and migrate existing ones."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(SCHEMA)
+        # Migrate: add show_author column if missing (existing rows default to 0)
+        cols = [r[1] for r in await db.execute_fetchall("PRAGMA table_info(haikus)")]
+        if "show_author" not in cols:
+            await db.execute(
+                "ALTER TABLE haikus ADD COLUMN show_author INTEGER NOT NULL DEFAULT 0"
+            )
         await db.commit()
 
 
-async def add_haiku(text: str, author: str) -> int:
+def redact_name(name: str) -> str:
+    """Redact a username: 'testpoet' → 't*****t'."""
+    if len(name) <= 2:
+        return name[0] + "*" if len(name) == 2 else "*"
+    return name[0] + "*" * (len(name) - 2) + name[-1]
+
+
+def _apply_redaction(haiku: dict) -> dict:
+    """Redact author name if show_author is false, and fix UTC timestamps."""
+    if not haiku.get("show_author"):
+        haiku["author"] = redact_name(haiku["author"])
+    # SQLite CURRENT_TIMESTAMP is UTC but lacks the Z suffix
+    ts = haiku.get("created_at", "")
+    if ts and not ts.endswith("Z") and "+" not in ts:
+        haiku["created_at"] = ts + "Z"
+    return haiku
+
+
+async def add_haiku(text: str, author: str, show_author: bool = False) -> int:
     """Insert a haiku and return its id."""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
-            "INSERT INTO haikus (text, author) VALUES (?, ?)", (text, author)
+            "INSERT INTO haikus (text, author, show_author) VALUES (?, ?, ?)",
+            (text, author, int(show_author)),
         )
         await db.commit()
         return cursor.lastrowid
+
+
+async def get_user_pref(telegram_id: int) -> bool:
+    """Get whether a user wants their name shown. Default: False (redacted)."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        row = await db.execute_fetchall(
+            "SELECT show_name FROM user_prefs WHERE telegram_id = ?",
+            (telegram_id,),
+        )
+        return bool(row[0][0]) if row else False
+
+
+async def set_user_pref(telegram_id: int, show_name: bool):
+    """Set the user's name visibility preference."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO user_prefs (telegram_id, show_name) VALUES (?, ?)"
+            " ON CONFLICT(telegram_id) DO UPDATE SET show_name = ?",
+            (telegram_id, int(show_name), int(show_name)),
+        )
+        await db.commit()
 
 
 async def get_haikus(page: int = 1) -> tuple[list[dict], bool]:
@@ -50,7 +102,7 @@ async def get_haikus(page: int = 1) -> tuple[list[dict], bool]:
         db.row_factory = aiosqlite.Row
         rows = await db.execute_fetchall(
             """
-            SELECT h.id, h.text, h.author, h.created_at,
+            SELECT h.id, h.text, h.author, h.show_author, h.created_at,
                    COALESCE(v.cnt, 0) AS votes
             FROM haikus h
             LEFT JOIN (SELECT haiku_id, COUNT(*) AS cnt FROM votes GROUP BY haiku_id) v
@@ -60,7 +112,7 @@ async def get_haikus(page: int = 1) -> tuple[list[dict], bool]:
             """,
             (PAGE_SIZE + 1, offset),
         )
-        haikus = [dict(r) for r in rows]
+        haikus = [_apply_redaction(dict(r)) for r in rows]
         has_more = len(haikus) > PAGE_SIZE
         return haikus[:PAGE_SIZE], has_more
 
@@ -71,7 +123,7 @@ async def get_top_haikus(limit: int = 20) -> list[dict]:
         db.row_factory = aiosqlite.Row
         rows = await db.execute_fetchall(
             """
-            SELECT h.id, h.text, h.author, h.created_at,
+            SELECT h.id, h.text, h.author, h.show_author, h.created_at,
                    COALESCE(v.cnt, 0) AS votes
             FROM haikus h
             LEFT JOIN (SELECT haiku_id, COUNT(*) AS cnt FROM votes GROUP BY haiku_id) v
@@ -82,7 +134,7 @@ async def get_top_haikus(limit: int = 20) -> list[dict]:
             """,
             (limit,),
         )
-        return [dict(r) for r in rows]
+        return [_apply_redaction(dict(r)) for r in rows]
 
 
 async def upvote(haiku_id: int, ip: str) -> bool:

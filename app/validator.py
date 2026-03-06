@@ -34,11 +34,28 @@ def _count_syllables_heuristic(word: str) -> int:
     return max(1, count)
 
 
+# Letters that are 1 syllable when spoken: B, C, D, G, P, T, V, Z, Q, K
+# Letters that are 2+ syllables: W (3), Y (1 — but contextual)
+# For simplicity, use CMU dict per-letter which handles this correctly.
+_LETTER_SYLLABLES = {}
+for _ch in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+    _phones = _CMU.get(_ch.lower())
+    if _phones:
+        _LETTER_SYLLABLES[_ch] = sum(1 for ph in _phones[0] if ph[-1].isdigit())
+    else:
+        _LETTER_SYLLABLES[_ch] = 1
+
+
 def count_syllables(word: str) -> int:
     """Count syllables for a single word, CMU dict first, heuristic fallback."""
     clean = re.sub(r"[^a-zA-Z']", "", word)
     if not clean:
         return 0
+
+    # Acronyms: all-uppercase, 2-4 letters → spell out each letter
+    if clean.isupper() and 2 <= len(clean) <= 4:
+        return sum(_LETTER_SYLLABLES.get(ch, 1) for ch in clean)
+
     cmu = _count_syllables_cmu(clean)
     if cmu is not None:
         return cmu

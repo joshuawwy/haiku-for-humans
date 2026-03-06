@@ -1,10 +1,14 @@
 import logging
+import mimetypes
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+
+# Ensure .webp is recognized
+mimetypes.add_type("image/webp", ".webp")
 
 from app.database import init_db, get_haikus, get_top_haikus, upvote, get_vote_count
 from app.bot import handle_update
